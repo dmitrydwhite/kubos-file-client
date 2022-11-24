@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "blake2": "^4.1.1"
+    "blake2": "^4.1.1",
+    "cbor": "^8.1.0"
   }
 }

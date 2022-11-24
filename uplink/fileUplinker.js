@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { Writable, Readable, Duplex } = require('stream');
+const cbor = require('cbor');
 const FileExportManager = require('./FileExportManager.js');
 const TempFileStore = require('./TempFileStore.js');
 
@@ -8,7 +9,7 @@ const TempFileStore = require('./TempFileStore.js');
  * @param {Writable|Duplex} dup_stream
  * @returns {Promise<void>}
  */
-const fileUplinker = (f_stream, dup_stream) => new Promise((resolve, reject) => {
+const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, reject) => {
 	const [isReadable, isWritable] = [dup_stream instanceof Readable, dup_stream instanceof Writable];
 	let fileSource;
 
@@ -31,10 +32,18 @@ const fileUplinker = (f_stream, dup_stream) => new Promise((resolve, reject) => 
 	tempStore.on(TempFileStore.STORAGE_FINISHED, data => {
 		const fExportMgr = new FileExportManager(data);
 
-		fExportMgr.pipe(dup_stream);
+		if (opts.noCbor) {
+			fExportMgr.pipe(dup_stream);
+		} else {
+			fExportMgr.pipe(new cbor.Encoder()).pipe(dup_stream);
+		}
 
 		if (isReadable) {
-			dup_stream.pipe(fExportMgr);
+			if (opts.noCbor) {
+				dup_stream.pipe(fExportMgr);
+			} else {
+				dup_stream.pipe(new cbor.Decoder()).pipe(fExportMgr);
+			}
 		}
 
 		fExportMgr.on('error', err => {

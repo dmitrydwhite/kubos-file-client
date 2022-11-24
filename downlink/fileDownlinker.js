@@ -1,4 +1,5 @@
 const { Duplex } = require('stream');
+const cbor = require('cbor');
 const FileImportReceiver = require("./FileImportReceiver");
 
 /**
@@ -6,7 +7,7 @@ const FileImportReceiver = require("./FileImportReceiver");
  * @param {Duplex} source
  * @returns {Promise<string>}
  */
-const fileDownlinker = (filePath, source) => new Promise((resolve, reject) => {
+const fileDownlinker = (filePath, source, opts = {}) => new Promise((resolve, reject) => {
 	if (typeof filePath !== 'string') {
 		return reject(new Error(`filePath must be a string; got ${typeof filePath} ${filePath}`));
 	}
@@ -17,18 +18,23 @@ const fileDownlinker = (filePath, source) => new Promise((resolve, reject) => {
 
 	const receiver = new FileImportReceiver({ destination: filePath });
 
-	source.pipe(receiver);
-	receiver.pipe(source);
+	if (opts.noCbor) {
+		source.pipe(receiver);
+		receiver.pipe(source);
+	} else {
+		source.pipe(new cbor.Decoder()).pipe(receiver);
+		receiver.pipe(new cbor.Encoder()).pipe(source);
+	}
 
 	receiver.on('error', err => {
-		receiver.unpipe(source);
-		source.unpipe(receiver);
+		receiver.unpipe();
+		source.unpipe();
 		reject(err);
 	});
 
 	receiver.on('close', () => {
-		receiver.unpipe(source);
-		source.unpipe(receiver);
+		receiver.unpipe();
+		source.unpipe();
 		resolve(filePath);
 	});
 });

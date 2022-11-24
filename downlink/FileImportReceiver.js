@@ -7,7 +7,7 @@ class FileImportReceiver extends Duplex {
 	static UNEXPECTED_MESSAGE = 'UNEXPECTED_IMPORT_MESSAGE';
 
 	constructor({ destination }) {
-		super();
+		super({ readableObjectMode: true });
 
 		/**
 		 * @type {fs.WriteStream}
@@ -42,7 +42,7 @@ class FileImportReceiver extends Duplex {
 	}
 
 	send(obj) {
-		this.push(JSON.stringify(obj));
+		this.push(obj);
 	}
 
 	updateNakMsg(missingPairs) {

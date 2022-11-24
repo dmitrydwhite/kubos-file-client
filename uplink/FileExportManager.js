@@ -7,7 +7,7 @@ const INITIAL_SEND_COMPLETE = 'INITIAL_SEND_COMPLETE';
 class FileExportManager extends Duplex {
 	constructor({ num_chunks, storage_path }) {
 		console.time('Initial send completed');
-		super();
+		super({ readableObjectMode: true });
 
 		this.channel_id = 'Placeholder_Channel_ID';
 		this.path = 'Placeholder_Path';
@@ -54,7 +54,7 @@ class FileExportManager extends Duplex {
 	}
 
 	send(obj) {
-		this.push(JSON.stringify(obj));
+		this.push(obj);
 	}
 
 	cleanupAndExit() {

@@ -1,0 +1,15 @@
+{
+  "name": "kubos-file-client",
+  "version": "0.1.0",
+  "description": "A Node.js client for the KubOS file transfer protocol",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "blake2": "^4.1.1"
+  }
+}

@@ -7,7 +7,7 @@ const MAX_NAK_COUNT = 4;
 class FileImportReceiver extends Duplex {
 	static UNEXPECTED_MESSAGE = 'UNEXPECTED_IMPORT_MESSAGE';
 
-	constructor({ destination, target_path }) {
+	constructor({ destination, target_path, channel_id }) {
 		super({ readableObjectMode: true });
 
 		/**
@@ -35,7 +35,7 @@ class FileImportReceiver extends Duplex {
 		//       Or is it OK for it to be a JS 64-bit number that can be represented in only 32 bits?
 		// this.channel_id = Buffer.alloc(4);
 		// this.channel_id.writeUint32BE(createChannelId());
-		this.channel_id = createChannelId();
+		this.channel_id = channel_id || createChannelId();
 
 		this.next_expected_chunk = 0;
 		this.nak = null;
@@ -46,7 +46,13 @@ class FileImportReceiver extends Duplex {
 		});
 		this.file_writer.pipe(this.dest);
 
-		this.send([this.channel_id, 'import', target_path]);
+		const importInterval = setInterval(() => {
+			if (this.isReady) {
+				clearInterval(importInterval);
+			} else {
+				this.send([this.channel_id, 'import', target_path]);
+			}
+		}, 500);
 	}
 
 	send(obj) {
@@ -173,6 +179,7 @@ class FileImportReceiver extends Duplex {
 			this.out_of_seq_chunks.set(index, data);
 		}
 
+		this.nak_count = 0;
 		this.checkFileComplete();
 	}
 

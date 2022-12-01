@@ -1,12 +1,13 @@
 const fs = require('fs');
 const { Duplex, PassThrough } = require('stream');
+const createChannelId = require('../utils/createChannelId');
 
 const MAX_NAK_COUNT = 4;
 
 class FileImportReceiver extends Duplex {
 	static UNEXPECTED_MESSAGE = 'UNEXPECTED_IMPORT_MESSAGE';
 
-	constructor({ destination }) {
+	constructor({ destination, target_path }) {
 		super({ readableObjectMode: true });
 
 		/**
@@ -30,7 +31,12 @@ class FileImportReceiver extends Duplex {
 
 		this.file_writer = new PassThrough();
 
-		this.channel_id = 'PID';
+		// TODO: Should channel ID always be a 32-bit Buffer?
+		//       Or is it OK for it to be a JS 64-bit number that can be represented in only 32 bits?
+		// this.channel_id = Buffer.alloc(4);
+		// this.channel_id.writeUint32BE(createChannelId());
+		this.channel_id = createChannelId();
+
 		this.next_expected_chunk = 0;
 		this.nak = null;
 		this.nak_count = 0;
@@ -39,6 +45,8 @@ class FileImportReceiver extends Duplex {
 			this.destroy();
 		});
 		this.file_writer.pipe(this.dest);
+
+		this.send([this.channel_id, 'import', target_path]);
 	}
 
 	send(obj) {
@@ -169,10 +177,9 @@ class FileImportReceiver extends Duplex {
 	}
 
 	_write(chunk, _, next) {
-		console.log(`got ${chunk}`);
 		try {
 			const result = JSON.parse(chunk.toString());
-			const [rec_id, rec_hash, rec_ak, ...failed_chunks] = result;
+			const [rec_id, rec_hash, rec_ak, fileChunk] = result;
 
 			if (rec_id !== this.channel_id) {
 				this.emit(
@@ -191,7 +198,7 @@ class FileImportReceiver extends Duplex {
 			}
 
 			if (Number.isInteger(rec_ak)) {
-				this.writeOrStoreChunk(rec_ak, failed_chunks[0]);
+				this.writeOrStoreChunk(rec_ak, fileChunk);
 
 				return next();
 			}

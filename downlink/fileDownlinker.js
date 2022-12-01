@@ -3,20 +3,25 @@ const cbor = require('cbor');
 const FileImportReceiver = require("./FileImportReceiver");
 
 /**
- * @param {string} filePath
- * @param {Duplex} source
+ * @param {string} storagePath The local location where the downlinked file will be stored
+ * @param {string} targetPath The location where the file is currently located on the remote system
+ * @param {Duplex} source The Node.js stream over which the transfer will take place
  * @returns {Promise<string>}
  */
-const fileDownlinker = (filePath, source, opts = {}) => new Promise((resolve, reject) => {
-	if (typeof filePath !== 'string') {
-		return reject(new Error(`filePath must be a string; got ${typeof filePath} ${filePath}`));
+const fileDownlinker = (storagePath, targetPath, source, opts = {}) => new Promise((resolve, reject) => {
+	if (typeof storagePath !== 'string') {
+		return reject(new Error(`storagePath must be a string; got ${typeof storagePath} ${storagePath}`));
+	}
+
+	if (typeof targetPath !== 'string') {
+		return reject(new Error(`targetPath must be a string; got ${typeof targetPath} ${targetPath}`));
 	}
 
 	if (!(source instanceof Duplex)) {
 		return reject(new Error(`source must be a Node.js Duplex stream`));
 	}
 
-	const receiver = new FileImportReceiver({ destination: filePath });
+	const receiver = new FileImportReceiver({ destination: storagePath, target_path: targetPath });
 
 	if (opts.noCbor) {
 		source.pipe(receiver);
@@ -35,7 +40,7 @@ const fileDownlinker = (filePath, source, opts = {}) => new Promise((resolve, re
 	receiver.on('close', () => {
 		receiver.unpipe();
 		source.unpipe();
-		resolve(filePath);
+		resolve(storagePath);
 	});
 });
 

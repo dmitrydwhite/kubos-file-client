@@ -10,11 +10,16 @@ const TempFileStore = require('./TempFileStore.js');
  * @returns {Promise<void>}
  */
 const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, reject) => {
+	const { mode, channel_id } = opts;
 	const [isReadable, isWritable] = [dup_stream instanceof Readable, dup_stream instanceof Writable];
 	let fileSource;
 
 	if (!isWritable) {
 		return reject(new Error('Second argument to fileUplinker must be a Writable or Duplex Stream'));
+	}
+
+	if (!(channel_id && mode)) {
+		return reject(new Error('The third options argument must contain both channel_id and mode properties'));
 	}
 
 	if (f_stream instanceof Readable) {
@@ -30,7 +35,7 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 	const tempStore = fileSource.pipe(new TempFileStore());
 
 	tempStore.on(TempFileStore.STORAGE_FINISHED, data => {
-		const fExportMgr = new FileExportManager(data);
+		const fExportMgr = new FileExportManager({ ...data, channel_id, mode });
 
 		if (opts.noCbor) {
 			fExportMgr.pipe(dup_stream);

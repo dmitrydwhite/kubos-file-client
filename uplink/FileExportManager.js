@@ -5,13 +5,18 @@ const { Duplex } = require('stream');
 const INITIAL_SEND_COMPLETE = 'INITIAL_SEND_COMPLETE';
 
 class FileExportManager extends Duplex {
-	constructor({ num_chunks, storage_path }) {
+	constructor({ num_chunks, storage_path, destination_path, channel_id, mode }) {
 		console.time('Initial send completed');
 		super({ readableObjectMode: true });
 
-		this.channel_id = 'Placeholder_Channel_ID';
-		this.path = 'Placeholder_Path';
-		this.mode = 'Placeholder_Mode';
+		this.channel_id = channel_id;
+		this.mode = mode;
+
+		if (!(this.channel_id && this.mode)) {
+			this.destroy(new Error(`File Export requires both channel_id and mode`));
+		}
+
+		this.path = destination_path || '';
 
 		/**
 		 * @type {string}

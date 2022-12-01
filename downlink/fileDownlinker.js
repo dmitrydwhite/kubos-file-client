@@ -23,7 +23,9 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 	}
 
 	const receiver = new FileImportReceiver({
-		destination: storagePath, target_path: targetPath, channel_id: channelId
+		destination: storagePath,
+		target_path: targetPath,
+		channel_id: channelId,
 	});
 
 	if (opts.noCbor) {

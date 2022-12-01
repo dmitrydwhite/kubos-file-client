@@ -8,7 +8,7 @@ class FileImportReceiver extends Duplex {
 	static UNEXPECTED_MESSAGE = 'UNEXPECTED_IMPORT_MESSAGE';
 
 	constructor({ destination, target_path, channel_id }) {
-		super({ readableObjectMode: true });
+		super({ readableObjectMode: true, writableObjectMode: true });
 
 		/**
 		 * @type {fs.WriteStream}
@@ -185,7 +185,8 @@ class FileImportReceiver extends Duplex {
 
 	_write(chunk, _, next) {
 		try {
-			const result = JSON.parse(chunk.toString());
+			// const result = JSON.parse(chunk.toString());
+			const result = chunk;
 			const [rec_id, rec_hash, rec_ak, fileChunk] = result;
 
 			if (rec_id !== this.channel_id) {

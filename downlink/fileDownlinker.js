@@ -1,6 +1,6 @@
 const { Duplex } = require('stream');
 const cbor = require('cbor');
-const FileImportReceiver = require("./FileImportReceiver");
+const FileImportReceiver = require('./FileImportReceiver');
 
 /**
  * @param {number} channelId The unique channel ID between 100000 and 4294967296
@@ -28,23 +28,22 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 		channel_id: channelId,
 	});
 
-	if (opts.noCbor) {
-		source.pipe(receiver);
-		receiver.pipe(source);
-	} else {
-		source.pipe(new cbor.Decoder()).pipe(receiver);
-		receiver.pipe(new cbor.Encoder()).pipe(source);
-	}
+	const sourceWriter = data => receiver.write(data);
+	const recWriter = data => source.write(data);
+
+	receiver.on('data',recWriter);
+
+	source.on('data', sourceWriter);
 
 	receiver.on('error', err => {
-		receiver.unpipe();
-		source.unpipe();
+		receiver.destroy();
+		source.off('data', sourceWriter);
 		reject(err);
 	});
 
 	receiver.on('close', () => {
-		receiver.unpipe();
-		source.unpipe();
+		receiver.destroy();
+		source.off('data', sourceWriter);
 		resolve(storagePath);
 	});
 });

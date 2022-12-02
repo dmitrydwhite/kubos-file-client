@@ -42,17 +42,18 @@ class FileImportReceiver extends Duplex {
 		this.nak_count = 0;
 
 		this.dest.on('finish', () => {
+			this.clearAllTimeouts();
 			this.destroy();
 		});
 		this.file_writer.pipe(this.dest);
 
-		const importInterval = setInterval(() => {
+		this.importInterval = setInterval(() => {
 			if (this.isReady) {
-				clearInterval(importInterval);
+				clearInterval(this.importInterval);
 			} else {
 				this.send([this.channel_id, 'import', target_path]);
 			}
-		}, 500);
+		}, 2000);
 	}
 
 	send(obj) {
@@ -63,8 +64,15 @@ class FileImportReceiver extends Duplex {
 		this.nak = [this.channel_id, this.hash, false, ...missingPairs];
 	}
 
+	clearAllTimeouts() {
+		clearTimeout(this.inactive_timeout);
+		clearInterval(this.wait_timeout);
+		clearInterval(this.importInterval);
+	}
+
 	timeOutImport() {
 		this.dest.destroy();
+		this.clearAllTimeouts();
 		this.destroy(new Error(`File Import timed out after > 10 seconds with no message`));
 	}
 
@@ -185,7 +193,6 @@ class FileImportReceiver extends Duplex {
 
 	_write(chunk, _, next) {
 		try {
-			// const result = JSON.parse(chunk.toString());
 			const result = chunk;
 			const [rec_id, rec_hash, rec_ak, fileChunk] = result;
 

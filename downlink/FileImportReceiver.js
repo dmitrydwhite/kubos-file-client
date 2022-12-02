@@ -206,7 +206,6 @@ class FileImportReceiver extends Duplex {
 			}
 
 			if (rec_hash === true) {
-				console.log('handling ready message');
 				this.handleReadyMessage(...result);
 
 				return next();

@@ -47,9 +47,8 @@ class FileExportManager extends Duplex {
 
 		this.on(INITIAL_SEND_COMPLETE, () => {
 			this.initial_send_complete = true;
-			console.log('');
 			console.timeEnd('Initial send completed');
-			console.log(this.hash);
+
 			setTimeout(() => {
 				this.cleanupAndExit();
 			}, 2500);

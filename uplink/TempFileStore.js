@@ -149,15 +149,3 @@ class TempFileStore extends Writable {
 }
 
 module.exports = TempFileStore;
-
-// var T = new TempFileStore();
-
-// var testF = fs.createReadStream('/Users/dmitry.white/Downloads/core');
-
-// console.time('testF');
-// testF.pipe(T);
-
-// T.on(TempFileStore.STORAGE_FINISHED, details => {
-// 	console.timeEnd('testF');
-// 	console.dir(details);
-// })

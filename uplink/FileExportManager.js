@@ -2,12 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const { Duplex } = require('stream');
 
-const INITIAL_SEND_COMPLETE = 'INITIAL_SEND_COMPLETE';
-
 class FileExportManager extends Duplex {
 	constructor({ num_chunks, storage_path, destination_path, channel_id, mode }) {
-		console.time('Initial send completed');
-		super({ readableObjectMode: true });
+		super({ readableObjectMode: true, writableObjectMode: true });
 
 		this.channel_id = channel_id;
 		this.mode = mode;
@@ -31,30 +28,17 @@ class FileExportManager extends Duplex {
 		 */
 		this.num_chunks = num_chunks;
 		/**
-		 * @type {boolean}
-		 */
-		this.initial_send_complete = false;
-		/**
-		 * @type {number}
-		 */
-		this.initial_send_count = 0;
-		/**
 		 * @type {Set<number>}
 		 */
 		this.retrying = new Set();
+		/**
+		 * @type {NodeJS.Timeout}
+		 */
+		this.no_resp_timeout = setTimeout(() => {
+			this.cleanupAndExit();
+		}, 2500);
 
 		[this.createMetaMessage(), this.createExportMessage()].forEach(msg => this.send(msg));
-
-		this.on(INITIAL_SEND_COMPLETE, () => {
-			this.initial_send_complete = true;
-			console.timeEnd('Initial send completed');
-
-			setTimeout(() => {
-				this.cleanupAndExit();
-			}, 2500);
-		});
-
-		this.sendInitial();
 	}
 
 	send(obj) {
@@ -62,6 +46,7 @@ class FileExportManager extends Duplex {
 	}
 
 	cleanupAndExit() {
+		clearTimeout(this.no_resp_timeout);
 		fs.rm(this.storage_path, { recursive: true, force: true }, () => {
 			this.destroy();
 		});
@@ -73,26 +58,6 @@ class FileExportManager extends Duplex {
 
 	createExportMessage() {
 		return [this.channel_id, 'export', this.hash, this.path, this.mode];
-	}
-
-	sendInitial() {
-		[...Array(this.num_chunks)].forEach((_, chunkNumber) => {
-			const chunkStrm = fs.createReadStream(path.join(this.storage_path, `${chunkNumber}`));
-			let chunkBuf = Buffer.alloc(0);
-
-			chunkStrm.on('data', buf => {
-				chunkBuf = Buffer.concat([chunkBuf, buf]);
-			});
-
-			chunkStrm.on('end', () => {
-				this.send([this.channel_id, this.hash, chunkNumber, chunkBuf]);
-				this.initial_send_count += 1;
-
-				if (this.initial_send_count === this.num_chunks) {
-					this.emit(INITIAL_SEND_COMPLETE);
-				}
-			});
-		});
 	}
 
 	/**
@@ -114,12 +79,19 @@ class FileExportManager extends Duplex {
 				this.send([this.channel_id, this.hash, chunkNumber, chunkBuf]);
 			});
 		});
+
+		this.no_resp_timeout = setTimeout(() => {
+			this.cleanupAndExit();
+		}, 2500);
 	}
 
 	_write(chunk, _, next) {
-		const [rec_id, rec_hash, rec_ak, ...failed_chunks] = JSON.parse(chunk.toString());
+		const [rec_id, rec_hash, rec_ak, ...failed_chunks] = chunk;
+
+		clearTimeout(this.no_resp_timeout);
 
 		if (rec_id !== this.channel_id) {
+			console.error(new Error(`File Export on channel ${this.channel_id} received a misdirected message intended for channel ${rec_id}`));
 			this.emit(
 				'error',
 				new Error(`File Export on channel ${this.channel_id} received a misdirected message intended for channel ${rec_id}`)
@@ -129,10 +101,11 @@ class FileExportManager extends Duplex {
 		}
 
 		if (rec_hash === true && this.received_ack) {
-			this.cleanupAndExit();
+			return this.cleanupAndExit();
 		}
 
 		if (rec_hash !== this.hash) {
+			console.error(new Error(`File Export on channel ${this.channel_id} received an incorrect hash (was ${rec_hash} expected ${this.hash})`))
 			this.emit(
 				'error',
 				new Error(`File Export on channel ${this.channel_id} received an incorrect hash (was ${rec_hash} expected ${this.hash})`)
@@ -147,10 +120,6 @@ class FileExportManager extends Duplex {
 				this.cleanupAndExit();
 			}, 2500);
 		} else {
-			if (!this.initial_send_complete) {
-				return next();
-			}
-
 			if (failed_chunks.length % 2 !== 0) {
 				this.emit(
 					'error',

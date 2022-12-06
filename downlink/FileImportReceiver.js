@@ -76,6 +76,10 @@ class FileImportReceiver extends Duplex {
 		this.destroy(new Error(`File Import timed out after > 10 seconds with no message`));
 	}
 
+	sendAk() {
+		this.send([this.channel_id, this.hash, true, this.expected_chunk_count]);
+	}
+
 	sendNak() {
 		if (this.nak_count >= MAX_NAK_COUNT) {
 			return this.timeOutImport();
@@ -126,6 +130,7 @@ class FileImportReceiver extends Duplex {
 
 	checkFileComplete() {
 		if (this.next_expected_chunk === this.expected_chunk_count) {
+			this.sendAk();
 			this.file_writer.end();
 			return;
 		}

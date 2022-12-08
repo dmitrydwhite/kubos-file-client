@@ -35,6 +35,7 @@ class FileExportManager extends Duplex {
 		 * @type {NodeJS.Timeout}
 		 */
 		this.no_resp_timeout = setTimeout(() => {
+			this.emit('error', new Error('File uplink timed out'));
 			this.cleanupAndExit();
 		}, 2500);
 

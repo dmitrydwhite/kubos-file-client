@@ -60,6 +60,8 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 		}
 
 		fExportMgr.on('error', err => {
+			// Remove listeners to prevent the Promise from resolving
+			fExportMgr.removeAllListeners();
 			reject(err);
 		});
 

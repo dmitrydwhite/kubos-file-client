@@ -31,10 +31,6 @@ class FileImportReceiver extends Duplex {
 
 		this.file_writer = new PassThrough();
 
-		// TODO: Should channel ID always be a 32-bit Buffer?
-		//       Or is it OK for it to be a JS 64-bit number that can be represented in only 32 bits?
-		// this.channel_id = Buffer.alloc(4);
-		// this.channel_id.writeUint32BE(createChannelId());
 		this.channel_id = channel_id || createChannelId();
 
 		this.next_expected_chunk = 0;
@@ -54,6 +50,8 @@ class FileImportReceiver extends Duplex {
 				this.send([this.channel_id, 'import', target_path]);
 			}
 		}, 2000);
+
+		this.send([this.channel_id, 'import', target_path]);
 	}
 
 	send(obj) {

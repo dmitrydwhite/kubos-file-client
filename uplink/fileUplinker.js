@@ -10,7 +10,7 @@ const TempFileStore = require('./TempFileStore.js');
  * @returns {Promise<void>}
  */
 const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, reject) => {
-	const { mode, channel_id, chunkSize, hashChunkSize } = opts;
+	const { mode, channel_id, chunkSize, hashChunkSize, remotePath } = opts;
 	const [isReadable, isWritable] = [dup_stream instanceof Readable, dup_stream instanceof Writable];
 	let fileSource;
 
@@ -35,7 +35,7 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 	const tempStore = fileSource.pipe(new TempFileStore({ chunkSize, hashChunkSize }));
 
 	tempStore.on(TempFileStore.STORAGE_FINISHED, data => {
-		const fExportMgr = new FileExportManager({ ...data, channel_id, mode });
+		const fExportMgr = new FileExportManager({ ...data, channel_id, mode, destination_path: remotePath });
 
 		if (opts.noCbor) {
 			fExportMgr.pipe(dup_stream);

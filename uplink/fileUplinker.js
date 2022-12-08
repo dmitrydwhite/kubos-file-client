@@ -10,7 +10,7 @@ const TempFileStore = require('./TempFileStore.js');
  * @returns {Promise<void>}
  */
 const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, reject) => {
-	const { mode, channel_id } = opts;
+	const { mode, channel_id, chunkSize, hashChunkSize } = opts;
 	const [isReadable, isWritable] = [dup_stream instanceof Readable, dup_stream instanceof Writable];
 	let fileSource;
 
@@ -32,7 +32,7 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 		}
 	}
 
-	const tempStore = fileSource.pipe(new TempFileStore());
+	const tempStore = fileSource.pipe(new TempFileStore({ chunkSize, hashChunkSize }));
 
 	tempStore.on(TempFileStore.STORAGE_FINISHED, data => {
 		const fExportMgr = new FileExportManager({ ...data, channel_id, mode });
@@ -40,14 +40,22 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 		if (opts.noCbor) {
 			fExportMgr.pipe(dup_stream);
 		} else {
-			fExportMgr.pipe(new cbor.Encoder()).pipe(dup_stream);
+			fExportMgr.on('data', plainObj => {
+				const encoded = cbor.encode(plainObj);
+
+				dup_stream.write(encoded);
+			});
 		}
 
 		if (isReadable) {
 			if (opts.noCbor) {
 				dup_stream.pipe(fExportMgr);
 			} else {
-				dup_stream.pipe(new cbor.Decoder()).pipe(fExportMgr);
+				dup_stream.on('data', encoded => {
+					const decoded = cbor.decodeAllSync(encoded);
+
+					fExportMgr.write(decoded);
+				});
 			}
 		}
 

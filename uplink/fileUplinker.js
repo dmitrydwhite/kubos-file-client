@@ -41,7 +41,9 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 			fExportMgr.pipe(dup_stream);
 		} else {
 			fExportMgr.on('data', plainObj => {
-				const encoded = cbor.encode(plainObj);
+				const encoded = Array.isArray(plainObj)
+					? cbor.encode(...plainObj)
+					: cbor.encode(plainObj);
 
 				dup_stream.write(encoded);
 			});

@@ -28,14 +28,31 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 		channel_id: channelId,
 	});
 
-	const sourceWriter = data => receiver.write(data);
-	const recWriter = data => source.write(data);
+	const sourceWriter = data => {
+		if (opts.noCbor) {
+			receiver.write(data);
+		} else {
+			const decoded = cbor.decodeAll(data);
+
+			receiver.write(decoded);
+		}
+	};
+	const recWriter = data => {
+		if (opts.noCbor) {
+			source.write(data);
+		} else {
+			const encoded = Array.isArray(data) ? cbor.encode(...data) : cbor.encode(data);
+
+			source.write(encoded);
+		}
+	};
 
 	receiver.on('data',recWriter);
 
 	source.on('data', sourceWriter);
 
 	receiver.on('error', err => {
+		receiver.removeAllListeners();
 		receiver.destroy();
 		source.off('data', sourceWriter);
 		reject(err);

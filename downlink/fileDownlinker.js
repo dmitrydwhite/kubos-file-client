@@ -28,11 +28,15 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 		channel_id: channelId,
 	});
 
+	/**
+	 * @param {Buffer} data
+	 */
 	const sourceWriter = data => {
 		if (opts.noCbor) {
 			receiver.write(data);
 		} else {
-			const decoded = cbor.decodeAll(data);
+			const toDecode = parseInt(data[0], 10) === 0 ? data.subarray(1) : data;
+			const decoded = cbor.decode(toDecode);
 
 			receiver.write(decoded);
 		}
@@ -41,13 +45,13 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 		if (opts.noCbor) {
 			source.write(data);
 		} else {
-			const encoded = Array.isArray(data) ? cbor.encode(...data) : cbor.encode(data);
+			const encoded = Buffer.concat([Buffer.alloc(1, 0), cbor.encode(data)]);
 
 			source.write(encoded);
 		}
 	};
 
-	receiver.on('data',recWriter);
+	receiver.on('data', recWriter);
 
 	source.on('data', sourceWriter);
 

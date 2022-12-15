@@ -6,6 +6,8 @@ const process = require('process');
 const { Writable } = require('stream');
 const blake2 = require('blake2');
 
+const target = '7f252e04358410e5c7e21cce0262f67f';
+
 const CHUNK_SIZE = 1024;
 const HASH_CHUNK_SIZE = 2048;
 const CHUNK_FINISHED = 'CHUNK_FINISHED';
@@ -126,6 +128,10 @@ class TempFileStore extends Writable {
 				this.tempFilesWritten += 1;
 				this.emit(CHUNK_FINISHED, err);
 			});
+		}
+
+		if (this.hashingArr.length) {
+			this.file_hash.update(Buffer.from(this.hashingArr));
 		}
 
 		const metaFileStrm = fs.createWriteStream(this.createMetaPath());

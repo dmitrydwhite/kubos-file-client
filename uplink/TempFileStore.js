@@ -139,7 +139,9 @@ class TempFileStore extends Writable {
 				const temporaryPath = path.join(process.cwd(), this.ca_path, this.temp_parent_folder);
 				const storage_path = path.join(process.cwd(), this.ca_path, this.file_hash.digest().toString('hex'));
 
-				fs.renameSync(temporaryPath, storage_path);
+				fs.mkdirSync(storage_path);
+				fs.cpSync(temporaryPath, storage_path);
+				fs.unlinkSync(temporaryPath);
 
 				this.emit(
 					TempFileStore.STORAGE_FINISHED,

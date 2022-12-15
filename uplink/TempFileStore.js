@@ -1,6 +1,6 @@
 const { randomUUID } = require('crypto');
 const fs = require('fs');
-const { copyFile } = require('fs/promises');
+const { copyFile, rm } = require('fs/promises');
 const path = require('path');
 const process = require('process');
 const { Writable } = require('stream');
@@ -146,8 +146,8 @@ class TempFileStore extends Writable {
 				Promise.all(fs.readdirSync(temporaryPath).map(fileName => {
 					copyFile(path.join(temporaryPath, fileName), path.join(storage_path, fileName))
 				}))
-					.then(() => {
-						fs.unlinkSync(temporaryPath);
+					.then(async () => {
+						await rm(temporaryPath, { recursive: true });
 
 						this.emit(
 							TempFileStore.STORAGE_FINISHED,

@@ -37,13 +37,13 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 	tempStore.on(TempFileStore.STORAGE_FINISHED, data => {
 		const fExportMgr = new FileExportManager({ ...data, channel_id, mode, destination_path: remotePath });
 
+		tempStore = null;
+
 		if (opts.noCbor) {
 			fExportMgr.pipe(dup_stream);
 		} else {
-			fExportMgr.on('data', plainObj => {
-				const encoded = Array.isArray(plainObj)
-					? cbor.encode(...plainObj)
-					: cbor.encode(plainObj);
+			fExportMgr.on('data', uplinkData => {
+				const encoded = Buffer.concat([Buffer.alloc(1, 0), cbor.encode(uplinkData)]);
 
 				dup_stream.write(encoded);
 			});
@@ -54,7 +54,9 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 				dup_stream.pipe(fExportMgr);
 			} else {
 				dup_stream.on('data', encoded => {
-					const decoded = cbor.decodeAllSync(encoded);
+					const decoded = parseInt(encoded[0]) === 0
+						? cbor.decode(encoded.subarray(1))
+						: cbor.decode(encoded);
 
 					fExportMgr.write(decoded);
 				});

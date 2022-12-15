@@ -1,5 +1,6 @@
 const { randomUUID } = require('crypto');
 const fs = require('fs');
+const { copyFile } = require('fs/promises');
 const path = require('path');
 const process = require('process');
 const { Writable } = require('stream');
@@ -135,23 +136,30 @@ class TempFileStore extends Writable {
 			}
 
 			this.metaWritten = true;
+
 			this.on(INTERNAL_FINISHED, () => {
 				const temporaryPath = path.join(process.cwd(), this.ca_path, this.temp_parent_folder);
 				const storage_path = path.join(process.cwd(), this.ca_path, this.file_hash.digest().toString('hex'));
 
 				fs.mkdirSync(storage_path);
-				fs.cpSync(temporaryPath, storage_path);
-				fs.unlinkSync(temporaryPath);
 
-				this.emit(
-					TempFileStore.STORAGE_FINISHED,
-					{
-						num_chunks: this.fileChunkCount,
-						storage_path,
-					}
-				);
-				next();
+				Promise.all(fs.readdirSync(temporaryPath).map(fileName => {
+					copyFile(path.join(temporaryPath, fileName), path.join(storage_path, fileName))
+				}))
+					.then(() => {
+						fs.unlinkSync(temporaryPath);
+
+						this.emit(
+							TempFileStore.STORAGE_FINISHED,
+							{
+								num_chunks: this.fileChunkCount,
+								storage_path,
+							}
+						);
+						next();
+					});
 			});
+
 			this.checkCompleteness();
 		});
 	}

@@ -37,8 +37,6 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 	tempStore.on(TempFileStore.STORAGE_FINISHED, data => {
 		const fExportMgr = new FileExportManager({ ...data, channel_id, mode, destination_path: remotePath });
 
-		tempStore = null;
-
 		if (opts.noCbor) {
 			fExportMgr.pipe(dup_stream);
 		} else {

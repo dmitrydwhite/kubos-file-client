@@ -21,3 +21,23 @@ uplink(myFilePath, MyUplink)
 		console.error(err);
 	});
 ```
+
+### Downlinking a file
+
+```js
+const { downlink } = require('kubos-file-client');
+const MyDownlink = new SatDownlinkSocket();
+const destinationPath = '/usr/home/local/destination/filepath.txt';
+const targetLocation = '/remote/location/filepath.txt';
+const uniqueId = getUniqueId();
+
+downlink(uniqueId, destinationPath, targetLocation, MyDownlink)
+	.then(filePath => {
+		console.log(`file has been downlinked to ${filePath}`);
+	})
+	.catch(err => {
+		console.log(`there was an error uplinking ${filePath}`);
+		console.error(err);
+	});
+//
+```

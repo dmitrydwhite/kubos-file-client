@@ -10,6 +10,8 @@ const FileImportReceiver = require('./FileImportReceiver');
  * @returns {Promise<string>}
  */
 const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) => new Promise((resolve, reject) => {
+	const { verbose } = opts;
+
 	if (typeof storagePath !== 'string') {
 		return reject(new Error(`storagePath must be a string; got ${typeof storagePath} ${storagePath}`));
 	}
@@ -32,6 +34,10 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 	 * @param {Buffer} data
 	 */
 	const sourceWriter = data => {
+		if (verbose) {
+			console.log(`Receiving file UDP: ${data}`);
+		}
+
 		if (opts.noCbor) {
 			receiver.write(data);
 		} else {
@@ -42,6 +48,10 @@ const fileDownlinker = (channelId, storagePath, targetPath, source, opts = {}) =
 		}
 	};
 	const recWriter = data => {
+		if (verbose) {
+			console.log(`Sending file UDP: ${data}`);
+		}
+
 		if (opts.noCbor) {
 			source.write(data);
 		} else {

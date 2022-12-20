@@ -10,7 +10,7 @@ const TempFileStore = require('./TempFileStore.js');
  * @returns {Promise<void>}
  */
 const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, reject) => {
-	const { mode, channel_id, chunkSize, hashChunkSize, remotePath } = opts;
+	const { mode, channel_id, chunkSize, hashChunkSize, remotePath, verbose } = opts;
 	const [isReadable, isWritable] = [dup_stream instanceof Readable, dup_stream instanceof Writable];
 	let fileSource;
 
@@ -43,6 +43,10 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 			fExportMgr.on('data', uplinkData => {
 				const encoded = Buffer.concat([Buffer.alloc(1, 0), cbor.encode(uplinkData)]);
 
+				if (verbose) {
+					console.log(`Sending file UDP: ${uplinkData}`);
+				}
+
 				dup_stream.write(encoded);
 			});
 		}
@@ -55,6 +59,10 @@ const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, 
 					const decoded = parseInt(encoded[0]) === 0
 						? cbor.decode(encoded.subarray(1))
 						: cbor.decode(encoded);
+
+					if (verbose) {
+						console.log(`Receiving file UDP: ${decoded}`);
+					}
 
 					fExportMgr.write(decoded);
 				});

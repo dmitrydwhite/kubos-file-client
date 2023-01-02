@@ -6,8 +6,6 @@ const process = require('process');
 const { Writable } = require('stream');
 const blake2 = require('blake2');
 
-const target = '7f252e04358410e5c7e21cce0262f67f';
-
 const CHUNK_SIZE = 1024;
 const HASH_CHUNK_SIZE = 2048;
 const CHUNK_FINISHED = 'CHUNK_FINISHED';

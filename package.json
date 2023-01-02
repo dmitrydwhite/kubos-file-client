@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Dmitry White <white.dmitry@gmail.com>",
+  "license": "Apache-2.0",
   "dependencies": {
     "blake2": "^4.1.1",
     "cbor": "^8.1.0"

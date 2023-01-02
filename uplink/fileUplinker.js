@@ -7,10 +7,17 @@ const TempFileStore = require('./TempFileStore.js');
 /**
  * @param {Readable|string} f_stream
  * @param {Writable|Duplex} dup_stream
+ * @param {object} opts
+ * @param {string|number} opts.mode
+ * @param {number} opts.channel_id
+ * @param {number} opts.chunkSize
+ * @param {number} opts.hashChunkSize
+ * @param {string} opts.remotePath
+ * @param {boolean} opts.verbose
  * @returns {Promise<void>}
  */
-const fileUplinker = (f_stream, dup_stream, opts = {}) => new Promise((resolve, reject) => {
-	const { mode, channel_id, chunkSize, hashChunkSize, remotePath, verbose } = opts;
+const fileUplinker = (f_stream, dup_stream, opts) => new Promise((resolve, reject) => {
+	const { mode, channel_id, chunkSize, hashChunkSize, remotePath, verbose } = opts || {};
 	const [isReadable, isWritable] = [dup_stream instanceof Readable, dup_stream instanceof Writable];
 	let fileSource;
 

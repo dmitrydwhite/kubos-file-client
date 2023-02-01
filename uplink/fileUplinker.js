@@ -82,6 +82,12 @@ const fileUplinker = (f_stream, dup_stream, opts) => new Promise((resolve, rejec
 			reject(err);
 		});
 
+		fExportMgr.on(FileExportManager.PARTIAL_COMPLETION, partialObj => {
+			// Remove listeners to prevent the Promise from resolving twice
+			fExportMgr.removeAllListeners();
+			resolve(partialObj);
+		});
+
 		fExportMgr.on('close', () => {
 			resolve();
 		});

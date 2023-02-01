@@ -2,7 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const { Duplex } = require('stream');
 
+const NO_RESPONSE_INTERVAL = 5000;
+
 class FileExportManager extends Duplex {
+	static PARTIAL_COMPLETION = 'PARTIAL_COMPLETION';
+
+	/**
+	 * @param {object} param0
+	 * @param {number} param0.num_chunks The number of file chunks to uplink
+	 * @param {string} param0.storage_path The file system location where the uplink chunks are stored
+	 * @param {string?} param0.destination_path The optional path description of where to store the file remotely
+	 * @param {number} param0.channel_id Unique channel identifier for this uplink's connection
+	 * @param {string} param0.mode For now, any string
+	 */
 	constructor({ num_chunks, storage_path, destination_path, channel_id, mode }) {
 		super({ readableObjectMode: true, writableObjectMode: true });
 
@@ -37,7 +49,7 @@ class FileExportManager extends Duplex {
 		this.no_resp_timeout = setTimeout(() => {
 			this.emit('error', new Error('File uplink timed out'));
 			this.cleanupAndExit();
-		}, 2500);
+		}, NO_RESPONSE_INTERVAL);
 
 		[this.createMetaMessage(), this.createExportMessage()].forEach(msg => this.send(msg));
 	}
@@ -48,6 +60,15 @@ class FileExportManager extends Duplex {
 
 	cleanupAndExit() {
 		clearTimeout(this.no_resp_timeout);
+
+		if (!(this.success || this.received_ack)) {
+			this.emit(FileExportManager.PARTIAL_COMPLETION, { transmit: true });
+		}
+
+		if (this.received_ack && !this.success) {
+			this.emit(FileExportManager.PARTIAL_COMPLETION, { ack: true });
+		}
+
 		fs.rm(this.storage_path, { recursive: true, force: true }, () => {
 			this.destroy();
 		});
@@ -83,7 +104,7 @@ class FileExportManager extends Duplex {
 
 		this.no_resp_timeout = setTimeout(() => {
 			this.cleanupAndExit();
-		}, 2500);
+		}, NO_RESPONSE_INTERVAL);
 	}
 
 	_write(chunk, _, next) {
@@ -102,6 +123,8 @@ class FileExportManager extends Duplex {
 		}
 
 		if (rec_hash === true && this.received_ack) {
+			this.success = true;
+
 			return this.cleanupAndExit();
 		}
 
@@ -119,7 +142,7 @@ class FileExportManager extends Duplex {
 			this.received_ack = true;
 			setTimeout(() => {
 				this.cleanupAndExit();
-			}, 2500);
+			}, NO_RESPONSE_INTERVAL);
 		} else {
 			if (failed_chunks.length % 2 !== 0) {
 				this.emit(

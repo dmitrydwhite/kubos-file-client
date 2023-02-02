@@ -61,12 +61,8 @@ class FileExportManager extends Duplex {
 	cleanupAndExit() {
 		clearTimeout(this.no_resp_timeout);
 
-		if (!(this.success || this.received_ack)) {
+		if (!this.success) {
 			this.emit(FileExportManager.PARTIAL_COMPLETION, { transmit: true });
-		}
-
-		if (this.received_ack && !this.success) {
-			this.emit(FileExportManager.PARTIAL_COMPLETION, { ack: true });
 		}
 
 		fs.rm(this.storage_path, { recursive: true, force: true }, () => {
@@ -108,7 +104,8 @@ class FileExportManager extends Duplex {
 	}
 
 	_write(chunk, _, next) {
-		const [rec_id, rec_hash, rec_ak, ...failed_chunks] = chunk;
+		// Note: If an ACK message is received by this stream, it will be ignored
+		const [rec_id, rec_hash, rec_ack, ...failed_chunks] = chunk;
 
 		clearTimeout(this.no_resp_timeout);
 
@@ -122,7 +119,7 @@ class FileExportManager extends Duplex {
 			return next();
 		}
 
-		if (rec_hash === true && this.received_ack) {
+		if (rec_hash === true) {
 			this.success = true;
 
 			return this.cleanupAndExit();
@@ -138,12 +135,8 @@ class FileExportManager extends Duplex {
 			return next();
 		}
 
-		if (rec_ak) {
-			this.received_ack = true;
-			setTimeout(() => {
-				this.cleanupAndExit();
-			}, NO_RESPONSE_INTERVAL);
-		} else {
+		// A value of false for rec_ack indicats a NAK message; if rec_ack is true we will just ignore
+		if (!rec_ack) {
 			if (failed_chunks.length % 2 !== 0) {
 				this.emit(
 					'error',

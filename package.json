@@ -1,6 +1,6 @@
 {
   "name": "kubos-file-client",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "A Node.js client for the KubOS file transfer protocol",
   "main": "index.js",
   "scripts": {

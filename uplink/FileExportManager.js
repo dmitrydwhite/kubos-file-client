@@ -95,7 +95,6 @@ class FileExportManager extends Duplex {
 			});
 
 			chunkStrm.on('end', () => {
-				inTransitCount -= 1;
 				this.retrying.delete(chunkNumber);
 				this.send([this.channel_id, this.hash, chunkNumber, chunkBuf]);
 

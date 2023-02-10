@@ -145,6 +145,20 @@ class TempFileStore extends Writable {
 				const temporaryPath = path.join(process.cwd(), this.ca_path, this.temp_parent_folder);
 				const storage_path = path.join(process.cwd(), this.ca_path, this.file_hash.digest().toString('hex'));
 
+				if (fs.existsSync(storage_path)) {
+					return rm(temporaryPath, { recursive: true })
+						.then(() => {
+							this.emit(
+								TempFileStore.STORAGE_FINISHED,
+								{
+									num_chunks: this.fileChunkCount,
+									storage_path,
+								}
+							);
+							next();
+						});
+				}
+
 				fs.mkdirSync(storage_path);
 
 				Promise.all(fs.readdirSync(temporaryPath).map(fileName => {

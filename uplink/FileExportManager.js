@@ -82,7 +82,9 @@ class FileExportManager extends Duplex {
 	 * @param {number[]} missingChunks
 	 */
 	sendRetries(missingChunks) {
-		missingChunks.forEach(chunkNumber => {
+		const lastIdx = missingChunks.length - 1;
+
+		missingChunks.forEach((chunkNumber, idx) => {
 			const chunkStrm = fs.createReadStream(path.join(this.storage_path, `${chunkNumber}`));
 			let chunkBuf = Buffer.alloc(0);
 
@@ -93,8 +95,15 @@ class FileExportManager extends Duplex {
 			});
 
 			chunkStrm.on('end', () => {
+				inTransitCount -= 1;
 				this.retrying.delete(chunkNumber);
 				this.send([this.channel_id, this.hash, chunkNumber, chunkBuf]);
+
+				// WIP: If this is the last missing chunk, send an export message to the Service to
+				// indicate we have completed this bunch of missing chunks.
+				if (idx === lastIdx) {
+					this.send(this.createExportMessage());
+				}
 			});
 		});
 
@@ -131,6 +140,7 @@ class FileExportManager extends Duplex {
 				'error',
 				new Error(`File Export on channel ${this.channel_id} received an incorrect hash (was ${rec_hash} expected ${this.hash})`)
 			);
+			this.cleanupAndExit();
 
 			return next();
 		}
